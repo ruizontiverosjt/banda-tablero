@@ -1,0 +1,1042 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Banda · Tablero</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='12' width='28' height='8' rx='4' fill='%232a78d6'/%3E%3Crect x='9' y='5' width='7' height='7' rx='1.5' fill='%23eb6834'/%3E%3C/svg%3E">
+<style>
+  :root {
+    color-scheme: light;
+    --plano: #f9f9f7;
+    --superficie: #fcfcfb;
+    --tinta: #0b0b0b;
+    --tinta-2: #52514e;
+    --tenue: #898781;
+    --rejilla: #e1e0d9;
+    --eje: #c3c2b7;
+    --borde: rgba(11, 11, 11, .10);
+    --lavado: rgba(11, 11, 11, .045);
+    --s1: #2a78d6;
+    --s2: #eb6834;
+    --acento: #2a78d6;
+    --bueno: #0ca30c;
+    --alerta: #fab219;
+    --critico: #d03b3b;
+    --sombra: 0 8px 24px rgba(0, 0, 0, .12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --plano: #0d0d0d;
+      --superficie: #1a1a19;
+      --tinta: #f0efec;
+      --tinta-2: #c3c2b7;
+      --rejilla: #2c2c2a;
+      --eje: #383835;
+      --borde: rgba(255, 255, 255, .10);
+      --lavado: rgba(255, 255, 255, .06);
+      --s1: #3987e5;
+      --s2: #d95926;
+      --acento: #3987e5;
+      --sombra: 0 8px 24px rgba(0, 0, 0, .5);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --plano: #0d0d0d;
+    --superficie: #1a1a19;
+    --tinta: #f0efec;
+    --tinta-2: #c3c2b7;
+    --rejilla: #2c2c2a;
+    --eje: #383835;
+    --borde: rgba(255, 255, 255, .10);
+    --lavado: rgba(255, 255, 255, .06);
+    --s1: #3987e5;
+    --s2: #d95926;
+    --acento: #3987e5;
+    --sombra: 0 8px 24px rgba(0, 0, 0, .5);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--plano);
+    color: var(--tinta);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
+
+  .contenedor { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+
+  header.top {
+    position: sticky; top: 0; z-index: 5;
+    background: color-mix(in srgb, var(--plano) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--borde);
+  }
+  header .barra { display: flex; align-items: center; gap: 12px; min-height: 56px; padding-top: env(safe-area-inset-top); }
+  header h1 {
+    font-size: 17px; font-weight: 650; margin: 0; letter-spacing: -.01em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+  }
+  header .espacio { flex: 1; }
+  header .icono-btn { flex: none; }
+  .actualizado { color: var(--tinta-2); font-size: 13px; white-space: nowrap; margin-left: auto; }
+  .icono-btn {
+    width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--borde);
+    background: var(--superficie); cursor: pointer; display: grid; place-items: center;
+  }
+  .icono-btn:hover { background: var(--lavado); }
+  .icono-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .girando svg { animation: girar 0.8s linear infinite; }
+  @keyframes girar { to { transform: rotate(360deg); } }
+
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--tinta-2); white-space: nowrap; }
+  .punto { width: 9px; height: 9px; border-radius: 50%; background: var(--tenue); flex: none; }
+  .pill.vivo .punto { background: var(--bueno); box-shadow: 0 0 0 3px color-mix(in srgb, var(--bueno) 25%, transparent); }
+  .pill.alerta .punto { background: var(--alerta); }
+
+  main { padding-top: 16px; padding-bottom: 48px; transition: opacity .2s; }
+  main.cargando { opacity: .6; }
+
+  .filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .segmentado { display: inline-flex; background: var(--superficie); border: 1px solid var(--borde); border-radius: 10px; padding: 3px; }
+  .segmentado button {
+    border: 0; background: transparent; padding: 6px 14px; border-radius: 7px; cursor: pointer;
+    color: var(--tinta-2); font-weight: 550; font-size: 14px;
+  }
+  .segmentado button[aria-pressed="true"] { background: var(--tinta); color: var(--plano); }
+  .filtros select {
+    background: var(--superficie); border: 1px solid var(--borde); border-radius: 10px; padding: 7px 10px; font-size: 14px;
+  }
+
+  .banner {
+    display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; margin-bottom: 14px;
+    background: var(--superficie); border: 1px solid var(--borde); font-size: 14px;
+  }
+  .banner .ico { color: var(--critico); font-weight: 700; }
+
+  .kpis { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 14px; }
+  @media (min-width: 760px) { .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .tile { background: var(--superficie); border: 1px solid var(--borde); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+  .tile.hero { grid-column: span 2; display: flex; flex-direction: column; justify-content: center; }
+  .tile .etq { font-size: 13px; color: var(--tinta-2); font-weight: 550; }
+  .tile .val { font-size: 26px; font-weight: 650; letter-spacing: -.02em; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile.hero .val { font-size: 52px; line-height: 1.05; }
+  .tile .sub { font-size: 13px; color: var(--tinta-2); margin-top: 2px; }
+  .tile .unidad { font-size: .55em; font-weight: 600; color: var(--tinta-2); margin-left: 3px; letter-spacing: 0; }
+
+  .card { background: var(--superficie); border: 1px solid var(--borde); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; min-width: 0; }
+  .card h2 { font-size: 15px; font-weight: 650; margin: 0; }
+  .card .cabeza { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 10px; }
+  .card .cabeza .sub { color: var(--tinta-2); font-size: 13px; }
+  .card .cabeza .espacio { flex: 1; }
+  .enlace { border: 0; background: none; color: var(--acento); cursor: pointer; padding: 4px 0; font-size: 14px; font-weight: 550; }
+  .enlace:hover { text-decoration: underline; }
+
+  .leyenda { display: flex; gap: 14px; font-size: 13px; color: var(--tinta-2); }
+  .leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+  .leyenda i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+  #grafica { position: relative; width: 100%; height: 250px; }
+  #grafica svg { display: block; overflow: visible; }
+  #grafica .tick { fill: var(--tenue); font-size: 11px; font-variant-numeric: tabular-nums; }
+  #grafica .etq-dato { fill: var(--tinta-2); font-size: 12px; font-weight: 600; }
+  #grafica .lavado { fill: var(--lavado); opacity: 0; }
+  #grafica .col:hover .lavado, #grafica .col:focus-within .lavado, #grafica .col.activa .lavado { opacity: 1; }
+  #grafica .golpe { fill: transparent; cursor: pointer; outline: none; }
+  .vacio { color: var(--tinta-2); font-size: 14px; padding: 24px 0; text-align: center; }
+
+  #tooltip {
+    position: fixed; z-index: 20; pointer-events: none; min-width: 150px;
+    background: var(--superficie); border: 1px solid var(--borde); border-radius: 10px; box-shadow: var(--sombra);
+    padding: 8px 10px; font-size: 13px;
+  }
+  #tooltip .tt-tit { color: var(--tinta-2); margin-bottom: 4px; }
+  #tooltip .tt-fila { display: flex; align-items: center; gap: 8px; }
+  #tooltip .tt-fila b { font-variant-numeric: tabular-nums; min-width: 2.5ch; }
+  #tooltip .tt-fila span { color: var(--tinta-2); }
+  #tooltip .clave { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+
+  .dos { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+  .chk { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--tinta-2); cursor: pointer; }
+  .chk input { accent-color: var(--acento); width: 16px; height: 16px; margin: 0; }
+  @media (min-width: 900px) { .dos { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); } .dos .card { margin-bottom: 0; } .dos { margin-bottom: 14px; } }
+
+  .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -16px; padding: 0 16px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th { text-align: left; font-size: 12px; font-weight: 600; color: var(--tinta-2); padding: 6px 10px 6px 0; border-bottom: 1px solid var(--eje); white-space: nowrap; }
+  td { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--rejilla); white-space: nowrap; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr:last-child td { border-bottom: 0; }
+
+  .estado-ico { display: inline-flex; align-items: center; gap: 6px; }
+  .estado-ico svg { width: 12px; height: 12px; flex: none; }
+  .ico-critico { fill: var(--critico); }
+  .ico-alerta { fill: var(--alerta); }
+  .ico-bueno { fill: var(--bueno); }
+  .tenue { color: var(--tinta-2); }
+
+  .alarmas { list-style: none; margin: 0; padding: 0; }
+  .alarmas li { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; padding: 9px 0; border-bottom: 1px solid var(--rejilla); align-items: start; }
+  .alarmas li:last-child { border-bottom: 0; }
+  .alarmas .ico { padding-top: 4px; }
+  .alarmas .ico svg { width: 12px; height: 12px; }
+  .alarmas .cod { font-weight: 600; font-size: 14px; }
+  .alarmas .det { grid-column: 2 / 4; color: var(--tinta-2); font-size: 13px; white-space: normal; }
+  .alarmas time { color: var(--tinta-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+  .actual { display: grid; gap: 10px 18px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (min-width: 760px) { .actual { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .actual div { min-width: 0; }
+  .actual dt { font-size: 12px; color: var(--tinta-2); }
+  .actual dd { margin: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Configuración */
+  .config { max-width: 560px; margin: 8px auto; }
+  .config p, .config ol { color: var(--tinta-2); font-size: 14px; }
+  .config ol { padding-left: 20px; }
+  .config label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
+  .config input {
+    width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--eje); background: var(--plano);
+  }
+  .config input:focus { outline: 2px solid var(--acento); outline-offset: 1px; }
+  .botones { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  .btn { border-radius: 10px; padding: 10px 16px; border: 1px solid var(--borde); background: var(--superficie); cursor: pointer; font-weight: 600; }
+  .btn.primario { background: var(--tinta); color: var(--plano); border-color: transparent; }
+  .btn:hover { filter: brightness(.96); }
+  .msg { margin-top: 12px; font-size: 14px; }
+  .msg.error { color: var(--critico); }
+  .demo-aviso { font-size: 13px; color: var(--tinta-2); }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="contenedor barra">
+    <h1>Banda transportadora</h1>
+    <span id="vivo" class="pill" hidden><span class="punto"></span><span id="vivoTxt"></span></span>
+    <span class="espacio"></span>
+    <button id="btnRefrescar" class="icono-btn" type="button" aria-label="Actualizar ahora" title="Actualizar ahora">
+      <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg>
+    </button>
+    <button id="btnAjustes" class="icono-btn" type="button" aria-label="Conexión" title="Conexión">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="main" class="contenedor">
+
+  <!-- Configuración / primera vez -->
+  <section id="vistaConfig" class="card config" hidden>
+    <h2>Conectar con la base de datos</h2>
+    <p>Esta página lee los datos que la app de escritorio sube a Supabase. La llave se guarda solo en este dispositivo.</p>
+    <ol>
+      <li>En Supabase: <b>Project Settings → API Keys</b>.</li>
+      <li>Copien la <b>URL del proyecto</b> y la llave <b>publishable</b> (o la <i>anon</i>), la misma que usa la app.</li>
+    </ol>
+    <form id="formConfig" autocomplete="off">
+      <label for="cfgUrl">URL del proyecto</label>
+      <input id="cfgUrl" type="url" inputmode="url" placeholder="https://xxxxxxxx.supabase.co" required>
+      <label for="cfgKey">Llave pública</label>
+      <input id="cfgKey" type="password" placeholder="sb_publishable_… o eyJ…" required>
+      <div class="botones">
+        <button class="btn primario" type="submit">Conectar</button>
+        <button class="btn" type="button" id="btnDemo">Ver con datos de ejemplo</button>
+        <button class="btn" type="button" id="btnVolver" hidden>Volver al tablero</button>
+        <button class="btn" type="button" id="btnOlvidar" hidden>Olvidar conexión</button>
+      </div>
+      <div id="cfgMsg" class="msg" role="status"></div>
+    </form>
+  </section>
+
+  <!-- Tablero -->
+  <section id="vistaTablero" hidden>
+    <div class="filtros">
+      <div class="segmentado" role="group" aria-label="Periodo">
+        <button type="button" data-rango="hoy" aria-pressed="true">Hoy</button>
+        <button type="button" data-rango="7d" aria-pressed="false">7 días</button>
+        <button type="button" data-rango="30d" aria-pressed="false">30 días</button>
+      </div>
+      <select id="selEquipo" aria-label="Equipo" hidden></select>
+      <span id="demoAviso" class="demo-aviso" hidden>Datos de ejemplo</span>
+      <span id="actualizado" class="actualizado"></span>
+    </div>
+
+    <div id="error" class="banner" role="alert" hidden><span class="ico">!</span><span id="errorTxt"></span></div>
+
+    <section class="kpis" aria-label="Resumen">
+      <div class="tile hero">
+        <div class="etq">Piezas desviadas</div>
+        <div class="val" id="kDesv">—</div>
+        <div class="sub" id="kDesvSub"></div>
+      </div>
+      <div class="tile"><div class="etq">Con falla</div><div class="val" id="kFallas">—</div><div class="sub" id="kFallasSub"></div></div>
+      <div class="tile"><div class="etq">Vistas por infrarrojo</div><div class="val" id="kIr">—</div><div class="sub" id="kIrSub"></div></div>
+      <div class="tile"><div class="etq">Respuesta del PLC</div><div class="val" id="kResp">—</div><div class="sub">promedio, I:0/0 → O:0/5</div></div>
+      <div class="tile"><div class="etq">Expulsión</div><div class="val" id="kExp">—</div><div class="sub">promedio, esperado ≈ 4 s</div></div>
+      <div class="tile"><div class="etq">Ciclo por pieza</div><div class="val" id="kCiclo">—</div><div class="sub">promedio</div></div>
+      <div class="tile"><div class="etq">Altura de pieza</div><div class="val" id="kAltura">—</div><div class="sub" id="kAlturaSub">promedio</div></div>
+    </section>
+
+    <section class="card">
+      <div class="cabeza">
+        <h2 id="tituloGrafica">Piezas por hora</h2>
+        <div class="leyenda" aria-hidden="true">
+          <span><i style="background: var(--s1)"></i>Normales</span>
+          <span><i style="background: var(--s2)"></i>Con falla</span>
+        </div>
+        <span class="espacio"></span>
+        <button type="button" class="enlace" id="btnTablaGrafica" aria-expanded="false">Ver tabla</button>
+      </div>
+      <div id="grafica"></div>
+      <div id="tablaGrafica" class="scroll" hidden></div>
+    </section>
+
+    <section class="card">
+      <div class="cabeza"><h2>Sesión más reciente</h2><span class="espacio"></span><span id="actualSub" class="sub"></span></div>
+      <dl id="actual" class="actual"></dl>
+    </section>
+
+    <div class="dos">
+      <section class="card">
+        <div class="cabeza"><h2>Alarmas</h2><span id="alarmasSub" class="sub"></span></div>
+        <ul id="alarmas" class="alarmas"></ul>
+        <button type="button" class="enlace" id="btnMasAlarmas" hidden>Ver más</button>
+      </section>
+      <section class="card">
+        <div class="cabeza">
+          <h2>Últimas piezas</h2><span id="piezasSub" class="sub"></span><span class="espacio"></span>
+          <label class="chk"><input type="checkbox" id="chkIr">Incluir infrarrojo</label>
+        </div>
+        <div class="scroll"><table id="tablaPiezas"></table></div>
+        <button type="button" class="enlace" id="btnMasPiezas" hidden>Ver más</button>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="cabeza"><h2>Sesiones</h2><span class="sub">del periodo</span></div>
+      <div class="scroll"><table id="tablaSesiones"></table></div>
+    </section>
+  </section>
+</main>
+
+<div id="tooltip" role="tooltip" hidden></div>
+
+<script>
+'use strict';
+
+// ======================================================================
+//  Estado y utilidades
+// ======================================================================
+const CLAVE_LS = 'bandaTablero.v1';
+const st = {
+  cfg: null,            // { url, key } o { demo: true }
+  rango: 'hoy',
+  equipo: '',
+  datos: null,          // { piezas, eventos, sesiones, desde }
+  cubetas: [],
+  ultimaCarga: 0,
+  cargando: false,
+  limitePiezas: 25,
+  limiteAlarmas: 12,
+};
+
+const $ = s => document.querySelector(s);
+const nf = new Intl.NumberFormat('es-MX');
+const nf1 = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const nf2 = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fHora = d => d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+const fHoraCorta = d => d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+const fDia = d => d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }).replace('.', '');
+const fDiaHora = d => `${fDia(d)} ${fHoraCorta(d)}`;
+
+function leerCfg() { try { return JSON.parse(localStorage.getItem(CLAVE_LS)); } catch { return null; } }
+function guardarCfg(c) { try { c ? localStorage.setItem(CLAVE_LS, JSON.stringify(c)) : localStorage.removeItem(CLAVE_LS); } catch { /* sin almacenamiento */ } }
+
+/** Crea elementos sin usar innerHTML (los datos vienen de la base y se tratan como texto). */
+function el(tag, props = {}, ...hijos) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v;
+    else if (k === 'text') e.textContent = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const h of hijos.flat()) if (h != null && h !== false) e.append(h instanceof Node ? h : String(h));
+  return e;
+}
+const SVGNS = 'http://www.w3.org/2000/svg';
+function sv(tag, attrs = {}) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs)) if (v != null) e.setAttribute(k, v);
+  return e;
+}
+
+function hace(fecha) {
+  const s = Math.max(0, Math.round((Date.now() - fecha) / 1000));
+  if (s < 60) return `hace ${s} s`;
+  if (s < 3600) return `hace ${Math.round(s / 60)} min`;
+  if (s < 86400) return `hace ${Math.round(s / 3600)} h`;
+  return fDiaHora(new Date(fecha));
+}
+function duracion(ms) {
+  const m = Math.max(0, Math.round(ms / 60000));
+  return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`;
+}
+function promedio(lista, campo) {
+  let s = 0, n = 0;
+  for (const x of lista) if (x[campo] != null) { s += x[campo]; n++; }
+  return n ? s / n : null;
+}
+
+// Íconos de estado (siempre con texto al lado: el color nunca va solo)
+function icono(tipo) {
+  const s = sv('svg', { viewBox: '0 0 12 12', 'aria-hidden': 'true', class: 'ico-' + tipo });
+  if (tipo === 'critico') s.append(sv('circle', { cx: 6, cy: 6, r: 5 }));
+  else if (tipo === 'alerta') s.append(sv('path', { d: 'M6 0.8 11.4 10.6H0.6Z' }));
+  else s.append(sv('rect', { x: 1, y: 1, width: 10, height: 10, rx: 2.5 }));
+  return s;
+}
+
+const RESULTADOS = {
+  DESVIADA: { texto: 'Desviada', tipo: null },
+  RETRASO_PLC: { texto: 'Retraso PLC', tipo: 'alerta' },
+  INCOMPLETA: { texto: 'Incompleta', tipo: 'critico' },
+  DETECTADA: { texto: 'Detectada', tipo: null },
+};
+const esFalla = p => p.resultado === 'RETRASO_PLC' || p.resultado === 'INCOMPLETA';
+
+// ======================================================================
+//  Acceso a Supabase (API REST de PostgREST)
+// ======================================================================
+/** Deja solo la base del proyecto: acepta la URL con /rest/v1/ o el enlace del panel de Supabase. */
+function normalizarUrl(url) {
+  let u = (url || '').trim().replace(/\/+$/, '');
+  const i = u.toLowerCase().indexOf('/rest/v1');
+  if (i >= 0) u = u.slice(0, i);
+  const panel = u.match(/^https?:\/\/(?:app\.)?supabase\.com\/dashboard\/project\/([a-z0-9]+)/i);
+  if (panel) u = `https://${panel[1].toLowerCase()}.supabase.co`;
+  return u.replace(/\/+$/, '');
+}
+
+async function api(ruta) {
+  const { url, key } = st.cfg;
+  const headers = { apikey: key, Accept: 'application/json' };
+  if (key.startsWith('eyJ')) headers.Authorization = 'Bearer ' + key;  // Llaves anon antiguas (JWT)
+  let r;
+  try {
+    r = await fetch(normalizarUrl(url) + '/rest/v1/' + ruta, { headers, cache: 'no-store' });
+  } catch {
+    throw new Error('No hay conexión con Supabase (¿sin internet o URL incorrecta?).');
+  }
+  if (!r.ok) {
+    let msg = '';
+    try { msg = (await r.json()).message || ''; } catch { /* sin cuerpo */ }
+    const pista = /invalid path/i.test(msg) ? ' La URL debe ser solo la base del proyecto: https://xxxx.supabase.co'
+      : /schema cache/i.test(msg) ? ' ¿Ya corrieron supabase/esquema.sql?'
+      : r.status === 401 || r.status === 403 ? ' Revisen la llave.'
+      : r.status === 404 ? ' Revisen la URL; si está bien, corran supabase/esquema.sql.' : '';
+    throw new Error(`Error ${r.status}${msg ? ': ' + msg : ''}.${pista}`);
+  }
+  return r.json();
+}
+
+/** Supabase entrega máximo 1000 filas por consulta: se pide por páginas. */
+async function apiTodo(ruta, maxFilas = 30000) {
+  const filas = [];
+  for (let desde = 0; desde < maxFilas; desde += 1000) {
+    const pagina = await api(`${ruta}&limit=1000&offset=${desde}`);
+    filas.push(...pagina);
+    if (pagina.length < 1000) break;
+  }
+  return filas;
+}
+
+function inicioDelRango(rango) {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  if (rango === '7d') d.setDate(d.getDate() - 6);
+  if (rango === '30d') d.setDate(d.getDate() - 29);
+  return d;
+}
+
+async function traerDatos() {
+  const desde = inicioDelRango(st.rango);
+  if (st.cfg.demo) return { ...generarDemo(desde), desde };
+  const f = encodeURIComponent(desde.toISOString());
+  const [piezas, eventos, sesiones] = await Promise.all([
+    apiTodo(`piezas?select=id,sesion_id,numero,fecha,sensor,distancia_cm,altura_cm,resultado,resp_plc_ms,expulsion_ms,ciclo_ms&fecha=gte.${f}&order=fecha.desc`),
+    api(`eventos?select=id,sesion_id,fecha,nivel,codigo,detalle&fecha=gte.${f}&nivel=in.(AVISO,ERROR)&order=fecha.desc&limit=200`),
+    api('sesiones?select=*&order=inicio.desc&limit=300'),
+  ]);
+  return { piezas, eventos, sesiones, desde };
+}
+
+// ======================================================================
+//  Carga y refresco
+// ======================================================================
+async function cargar() {
+  if (st.cargando || !st.cfg) return;
+  st.cargando = true;
+  $('#main').classList.toggle('cargando', st.datos !== null);
+  $('#btnRefrescar').classList.add('girando');
+  try {
+    st.datos = await traerDatos();
+    st.ultimaCarga = Date.now();
+    $('#error').hidden = true;
+    pintar();
+  } catch (e) {
+    $('#errorTxt').textContent = e.message + (st.datos ? ' Se muestran los últimos datos cargados.' : '');
+    $('#error').hidden = false;
+  } finally {
+    st.cargando = false;
+    $('#main').classList.remove('cargando');
+    $('#btnRefrescar').classList.remove('girando');
+    pintarReloj();
+  }
+}
+
+function intervaloRefresco() { return st.rango === 'hoy' ? 15000 : 60000; }
+
+setInterval(() => {
+  pintarReloj();
+  if (!st.cfg || document.hidden || $('#vistaTablero').hidden) return;
+  if (Date.now() - st.ultimaCarga >= intervaloRefresco()) cargar();
+}, 1000);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && st.cfg && Date.now() - st.ultimaCarga > 5000) cargar();
+});
+
+function pintarReloj() {
+  $('#actualizado').textContent = st.ultimaCarga ? 'Actualizado ' + hace(st.ultimaCarga) : '';
+  if (st.datos) pintarVivo();
+}
+
+// ======================================================================
+//  Cálculos y pintado
+// ======================================================================
+function filtrado() {
+  const d = st.datos;
+  const sesionPorId = new Map(d.sesiones.map(s => [s.id, s]));
+  const delEquipo = x => !st.equipo || sesionPorId.get(x.sesion_id)?.equipo === st.equipo;
+  const sesiones = d.sesiones.filter(s => !st.equipo || s.equipo === st.equipo);
+  return {
+    sesionPorId,
+    piezas: d.piezas.filter(delEquipo),
+    eventos: d.eventos.filter(delEquipo),
+    sesiones,
+    sesionesRango: sesiones.filter(s => new Date(s.ultima_actividad || s.fin || s.inicio) >= d.desde),
+  };
+}
+
+function pintar() {
+  pintarEquipos();
+  const f = filtrado();
+  pintarKpis(f);
+  pintarGrafica(f);
+  pintarActual(f);
+  pintarAlarmas(f);
+  pintarPiezas(f);
+  pintarSesiones(f);
+  pintarVivo();
+}
+
+function pintarEquipos() {
+  const equipos = [...new Set(st.datos.sesiones.map(s => s.equipo).filter(Boolean))].sort();
+  const sel = $('#selEquipo');
+  sel.hidden = equipos.length < 2;
+  if (!equipos.includes(st.equipo)) st.equipo = '';
+  sel.replaceChildren(el('option', { value: '', text: 'Todos los equipos' }),
+    ...equipos.map(e => el('option', { value: e, text: e, selected: e === st.equipo })));
+}
+
+function valor(id, numero, unidad) {
+  const v = $(id);
+  v.replaceChildren(numero);
+  if (unidad) v.append(el('span', { class: 'unidad', text: unidad }));
+}
+
+function pintarKpis(f) {
+  const us = f.piezas.filter(p => p.sensor === 'ULTRASONICO');
+  const ir = f.piezas.length - us.length;
+  const desviadas = us.filter(p => p.resultado === 'DESVIADA' || p.resultado === 'RETRASO_PLC').length;
+  const fallas = us.filter(esFalla).length;
+  const normales = us.filter(p => p.resultado === 'DESVIADA');
+  const unaHora = Date.now() - 3600e3;
+  const ultimaHora = us.filter(p => new Date(p.fecha) >= unaHora && p.resultado !== 'INCOMPLETA').length;
+
+  valor('#kDesv', nf.format(desviadas));
+  $('#kDesvSub').textContent = `${nf.format(us.length)} detectadas por el ultrasónico · ${nf.format(ultimaHora)} en la última hora`;
+  valor('#kFallas', nf.format(fallas));
+  $('#kFallasSub').textContent = us.length ? `${nf1.format(100 * fallas / us.length)} % de las detectadas` : 'sin piezas';
+  valor('#kIr', nf.format(ir));
+  $('#kIrSub').textContent = ir ? `${nf.format(Math.max(0, ir - us.length))} pasaron sin desviarse` : 'sensor sin datos';
+
+  const resp = promedio(normales, 'resp_plc_ms');
+  const exp = promedio(normales, 'expulsion_ms');
+  const ciclo = promedio(normales, 'ciclo_ms');
+  const altura = promedio(us, 'altura_cm');
+  resp == null ? valor('#kResp', '—') : valor('#kResp', nf.format(Math.round(resp)), 'ms');
+  exp == null ? valor('#kExp', '—') : valor('#kExp', nf2.format(exp / 1000), 's');
+  ciclo == null ? valor('#kCiclo', '—') : valor('#kCiclo', nf1.format(ciclo / 1000), 's');
+  altura == null ? valor('#kAltura', '—') : valor('#kAltura', nf1.format(altura), 'cm');
+  $('#kAlturaSub').textContent = altura == null ? 'configúrenla en la app' : 'promedio';
+}
+
+// ---------------- Gráfica: columnas apiladas ----------------
+function armarCubetas(f) {
+  const ahora = new Date();
+  const cubetas = [];
+  if (st.rango === 'hoy') {
+    let primera = ahora.getHours() - 5;
+    for (const p of f.piezas) primera = Math.min(primera, new Date(p.fecha).getHours());
+    primera = Math.max(0, primera);
+    for (let h = primera; h <= ahora.getHours(); h++) {
+      const hh = String(h).padStart(2, '0');
+      cubetas.push({ clave: h, corta: hh, larga: `${hh}:00 – ${hh}:59`, ok: 0, falla: 0 });
+    }
+    const indice = new Map(cubetas.map((c, i) => [c.clave, i]));
+    for (const p of f.piezas) {
+      if (p.sensor !== 'ULTRASONICO') continue;
+      const i = indice.get(new Date(p.fecha).getHours());
+      if (i != null) esFalla(p) ? cubetas[i].falla++ : cubetas[i].ok++;
+    }
+  } else {
+    const dias = st.rango === '7d' ? 7 : 30;
+    const d0 = inicioDelRango(st.rango);
+    for (let i = 0; i < dias; i++) {
+      const d = new Date(d0);
+      d.setDate(d0.getDate() + i);
+      cubetas.push({ clave: d.toDateString(), corta: fDia(d), larga: d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' }), ok: 0, falla: 0 });
+    }
+    const indice = new Map(cubetas.map((c, i) => [c.clave, i]));
+    for (const p of f.piezas) {
+      if (p.sensor !== 'ULTRASONICO') continue;
+      const i = indice.get(new Date(p.fecha).toDateString());
+      if (i != null) esFalla(p) ? cubetas[i].falla++ : cubetas[i].ok++;
+    }
+  }
+  return cubetas;
+}
+
+function escala(maximo) {
+  const crudo = Math.max(1, maximo) / 4;
+  const p = Math.pow(10, Math.floor(Math.log10(crudo)));
+  const paso = Math.max(1, [1, 2, 5, 10].map(k => k * p).find(s => s >= crudo));
+  return { paso, max: paso * Math.max(1, Math.ceil(maximo / paso)) };
+}
+
+function pathColumna(x, yArriba, w, h, r) {
+  r = Math.max(0, Math.min(r, w / 2, h));
+  return `M${x},${yArriba + h}V${yArriba + r}a${r},${r} 0 0 1 ${r},${-r}h${w - 2 * r}a${r},${r} 0 0 1 ${r},${r}V${yArriba + h}Z`;
+}
+
+function pintarGrafica(f) {
+  st.cubetas = armarCubetas(f);
+  $('#tituloGrafica').textContent = st.rango === 'hoy' ? 'Piezas detectadas por hora' : 'Piezas detectadas por día';
+  dibujarGrafica();
+  pintarTablaGrafica();
+}
+
+function dibujarGrafica() {
+  const cont = $('#grafica');
+  const cubetas = st.cubetas;
+  ocultarTooltip();
+  if (!cubetas.some(c => c.ok + c.falla > 0)) {
+    cont.replaceChildren(el('div', { class: 'vacio', text: 'Sin piezas en este periodo.' }));
+    cont.style.height = 'auto';
+    return;
+  }
+  cont.style.height = '';
+  const W = Math.max(280, cont.clientWidth), H = cont.clientHeight || 250;
+  const m = { l: 34, r: 6, t: 22, b: 26 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const maxTot = Math.max(...cubetas.map(c => c.ok + c.falla));
+  const { paso, max } = escala(maxTot);
+  const y = v => m.t + ph - (v / max) * ph;
+  const svg = sv('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: 'group', 'aria-label': $('#tituloGrafica').textContent });
+
+  for (let v = 0; v <= max; v += paso) {
+    svg.append(sv('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: v === 0 ? 'var(--eje)' : 'var(--rejilla)', 'stroke-width': 1, 'shape-rendering': 'crispEdges' }));
+    const t = sv('text', { x: m.l - 8, y: y(v) + 4, 'text-anchor': 'end', class: 'tick' });
+    t.textContent = nf.format(v);
+    svg.append(t);
+  }
+
+  const banda = pw / cubetas.length;
+  const ancho = Math.min(24, Math.max(3, banda * 0.62));
+  const cadaEtiqueta = Math.max(1, Math.ceil(cubetas.length / Math.max(2, Math.floor(pw / 52))));
+  let iMax = 0;
+  cubetas.forEach((c, i) => { if (c.ok + c.falla > cubetas[iMax].ok + cubetas[iMax].falla) iMax = i; });
+
+  cubetas.forEach((c, i) => {
+    const x0 = m.l + i * banda, xc = x0 + banda / 2, xb = xc - ancho / 2;
+    const g = sv('g', { class: 'col' });
+    g.append(sv('rect', { class: 'lavado', x: x0, y: m.t, width: banda, height: ph, rx: 4 }));
+
+    // Segmentos: abajo desviadas normales, arriba con falla; 2 px de separación; esquinas redondeadas solo arriba
+    const base = y(0);
+    let tope = base;
+    if (c.ok > 0) {
+      const h = Math.max(2, base - y(c.ok));
+      g.append(sv('path', { d: pathColumna(xb, base - h, ancho, h, c.falla ? 0 : 4), fill: 'var(--s1)' }));
+      tope = base - h;
+    }
+    if (c.falla > 0) {
+      const inicio = c.ok > 0 ? tope - 2 : base;
+      const h = Math.max(2, inicio - y(c.ok + c.falla));
+      g.append(sv('path', { d: pathColumna(xb, inicio - h, ancho, h, 4), fill: 'var(--s2)' }));
+      tope = inicio - h;
+    }
+
+    if (i === iMax) {  // Una sola etiqueta directa: el máximo
+      const t = sv('text', { x: xc, y: tope - 6, 'text-anchor': 'middle', class: 'etq-dato' });
+      t.textContent = nf.format(c.ok + c.falla);
+      g.append(t);
+    }
+    if (i % cadaEtiqueta === 0 || i === cubetas.length - 1) {
+      if (!(i !== cubetas.length - 1 && cubetas.length - 1 - i < cadaEtiqueta / 1.5)) {
+        const t = sv('text', { x: xc, y: H - 6, 'text-anchor': 'middle', class: 'tick' });
+        t.textContent = c.corta;
+        g.append(t);
+      }
+    }
+
+    const golpe = sv('rect', {
+      class: 'golpe', x: x0, y: 0, width: banda, height: H, tabindex: 0, role: 'img',
+      'aria-label': `${c.larga}: ${c.ok} normales, ${c.falla} con falla`,
+    });
+    const mostrar = ev => {
+      document.querySelectorAll('#grafica .col.activa').forEach(n => n.classList.remove('activa'));
+      g.classList.add('activa');
+      mostrarTooltip(c, ev);
+    };
+    golpe.addEventListener('pointerenter', mostrar);
+    golpe.addEventListener('pointermove', mostrar);
+    golpe.addEventListener('pointerdown', mostrar);
+    golpe.addEventListener('focus', mostrar);
+    golpe.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') { g.classList.remove('activa'); ocultarTooltip(); } });
+    golpe.addEventListener('blur', () => { g.classList.remove('activa'); ocultarTooltip(); });
+    g.append(golpe);
+    svg.append(g);
+  });
+  cont.replaceChildren(svg);
+}
+
+function mostrarTooltip(c, ev) {
+  const tt = $('#tooltip');
+  const fila = (color, n, nombre) => el('div', { class: 'tt-fila' },
+    el('i', { class: 'clave', style: color ? `background:${color}` : 'background:transparent' }),
+    el('b', { text: nf.format(n) }), el('span', { text: nombre }));
+  tt.replaceChildren(
+    el('div', { class: 'tt-tit', text: c.larga }),
+    fila('var(--s1)', c.ok, 'normales'),
+    fila('var(--s2)', c.falla, 'con falla'),
+    fila(null, c.ok + c.falla, 'detectadas en total'));
+  tt.hidden = false;
+
+  let x, yy;
+  if (ev && ev.clientX != null && ev.type !== 'focus') { x = ev.clientX; yy = ev.clientY; }
+  else { const r = ev.target.getBoundingClientRect(); x = r.left + r.width / 2; yy = r.top + 60; }
+  const w = tt.offsetWidth, h = tt.offsetHeight;
+  let left = x + 14, top = yy - h - 12;
+  if (left + w > innerWidth - 8) left = x - w - 14;
+  if (left < 8) left = 8;
+  if (top < 8) top = yy + 16;
+  tt.style.left = left + 'px';
+  tt.style.top = top + 'px';
+}
+function ocultarTooltip() { $('#tooltip').hidden = true; }
+document.addEventListener('pointerdown', e => {
+  if (!e.target.closest('#grafica')) {
+    ocultarTooltip();
+    document.querySelectorAll('#grafica .col.activa').forEach(n => n.classList.remove('activa'));
+  }
+});
+window.addEventListener('scroll', ocultarTooltip, { passive: true });
+
+function pintarTablaGrafica() {
+  const filas = st.cubetas.filter(c => c.ok + c.falla > 0);
+  $('#tablaGrafica').replaceChildren(el('table', {},
+    el('thead', {}, el('tr', {},
+      el('th', { text: st.rango === 'hoy' ? 'Hora' : 'Día' }),
+      el('th', { class: 'num', text: 'Normales' }), el('th', { class: 'num', text: 'Con falla' }), el('th', { class: 'num', text: 'Total' }))),
+    el('tbody', {}, filas.map(c => el('tr', {},
+      el('td', { text: c.larga }), el('td', { class: 'num', text: nf.format(c.ok) }),
+      el('td', { class: 'num', text: nf.format(c.falla) }), el('td', { class: 'num', text: nf.format(c.ok + c.falla) }))))));
+}
+
+new ResizeObserver(() => { if (st.cubetas.length) requestAnimationFrame(dibujarGrafica); }).observe($('#grafica'));
+
+// ---------------- Estado en vivo y sesión actual ----------------
+function estadoSesion(s) {
+  if (!s) return { clase: '', texto: 'Sin sesiones' };
+  if (s.fin) return { clase: '', texto: 'Detenida' };
+  const ult = new Date(s.ultima_actividad || s.inicio).getTime();
+  return Date.now() - ult < 90e3 ? { clase: 'vivo', texto: 'En vivo' } : { clase: 'alerta', texto: 'Sin datos recientes' };
+}
+
+function pintarVivo() {
+  const s = filtrado().sesiones[0];
+  const e = estadoSesion(s);
+  const pill = $('#vivo');
+  pill.hidden = false;
+  pill.className = 'pill ' + e.clase;
+  $('#vivoTxt').textContent = e.texto;
+}
+
+function pintarActual(f) {
+  const s = f.sesiones[0];
+  const dl = $('#actual');
+  if (!s) { dl.replaceChildren(el('div', { class: 'tenue', text: 'Todavía no hay sesiones.' })); $('#actualSub').textContent = ''; return; }
+  const ini = new Date(s.inicio);
+  const fin = s.fin ? new Date(s.fin) : new Date(s.ultima_actividad || s.inicio);
+  const lecturas = Number(s.lecturas) || 0;
+  const campo = (dt, dd) => el('div', {}, el('dt', { text: dt }), el('dd', { text: dd, title: dd }));
+  dl.replaceChildren(
+    campo('Equipo', s.equipo || '—'),
+    campo('Operador', s.operador || '—'),
+    campo('Inicio', fDiaHora(ini)),
+    campo('Duración', duracion(fin - ini)),
+    campo('Desviadas', nf.format(s.desviadas ?? 0)),
+    campo('Con falla', nf.format(s.fallas ?? 0)),
+    campo('Lecturas sin eco', lecturas ? `${nf1.format(100 * (Number(s.lecturas_sin_eco) || 0) / lecturas)} %` : '—'),
+    campo('Firmware', s.firmware || '—'));
+  $('#actualSub').textContent = `${estadoSesion(s).texto} · última actividad ${hace(new Date(s.ultima_actividad || s.inicio))}`;
+}
+
+// ---------------- Listas ----------------
+function pintarAlarmas(f) {
+  const ul = $('#alarmas');
+  const lista = f.eventos.slice(0, st.limiteAlarmas);
+  $('#alarmasSub').textContent = f.eventos.length ? `${nf.format(f.eventos.length)} en el periodo` : '';
+  if (!lista.length) {
+    ul.replaceChildren(el('li', {}, el('span', { class: 'ico' }, icono('bueno')), el('span', { class: 'cod', text: 'Sin alarmas en este periodo' })));
+  } else {
+    ul.replaceChildren(...lista.map(e => {
+      const d = new Date(e.fecha);
+      const tipo = e.nivel === 'ERROR' ? 'critico' : 'alerta';
+      return el('li', {},
+        el('span', { class: 'ico', title: e.nivel === 'ERROR' ? 'Error' : 'Aviso' }, icono(tipo)),
+        el('span', { class: 'cod', text: `${e.nivel === 'ERROR' ? 'Error' : 'Aviso'} · ${e.codigo}` }),
+        el('time', { datetime: e.fecha, text: st.rango === 'hoy' ? fHora(d) : fDiaHora(d) }),
+        el('span', { class: 'det', text: e.detalle || '' }));
+    }));
+  }
+  $('#btnMasAlarmas').hidden = f.eventos.length <= st.limiteAlarmas;
+}
+
+function pintarPiezas(f) {
+  // El infrarrojo ve TODAS las piezas (también las que desvía el ultrasónico), así que por defecto se ocultan
+  const todas = $('#chkIr').checked ? f.piezas : f.piezas.filter(p => p.sensor !== 'INFRARROJO');
+  const lista = todas.slice(0, st.limitePiezas);
+  $('#piezasSub').textContent = todas.length ? `${nf.format(todas.length)} registros` : '';
+  const hayAltura = todas.some(p => p.altura_cm != null);
+  $('#tablaPiezas').replaceChildren(
+    el('thead', {}, el('tr', {},
+      el('th', { text: 'Hora' }), el('th', { class: 'num', text: '#' }), el('th', { text: 'Sensor' }),
+      el('th', { class: 'num', text: hayAltura ? 'Altura' : 'Distancia' }), el('th', { text: 'Resultado' }),
+      el('th', { class: 'num', text: 'Resp. PLC' }), el('th', { class: 'num', text: 'Ciclo' }))),
+    el('tbody', {}, lista.length ? lista.map(p => {
+      const d = new Date(p.fecha);
+      const r = RESULTADOS[p.resultado] || { texto: p.resultado, tipo: null };
+      const medida = hayAltura ? p.altura_cm : p.distancia_cm;
+      return el('tr', {},
+        el('td', { text: st.rango === 'hoy' ? fHora(d) : fDiaHora(d) }),
+        el('td', { class: 'num', text: p.numero ?? '' }),
+        el('td', { class: p.sensor === 'INFRARROJO' ? 'tenue' : '', text: p.sensor === 'INFRARROJO' ? 'Infrarrojo' : 'Ultrasónico' }),
+        el('td', { class: 'num', text: medida != null ? nf1.format(medida) + ' cm' : '' }),
+        el('td', { class: p.resultado === 'DETECTADA' ? 'tenue' : '' },
+          el('span', { class: 'estado-ico' }, r.tipo ? icono(r.tipo) : null, r.texto)),
+        el('td', { class: 'num', text: p.resp_plc_ms != null ? nf.format(p.resp_plc_ms) + ' ms' : '' }),
+        el('td', { class: 'num', text: p.ciclo_ms != null ? nf1.format(p.ciclo_ms / 1000) + ' s' : '' }));
+    }) : el('tr', {}, el('td', { colspan: 7, class: 'tenue', text: 'Sin piezas en este periodo.' }))));
+  $('#btnMasPiezas').hidden = todas.length <= st.limitePiezas;
+}
+
+function pintarSesiones(f) {
+  const lista = f.sesionesRango.slice(0, 15);
+  $('#tablaSesiones').replaceChildren(
+    el('thead', {}, el('tr', {},
+      el('th', { text: 'Inicio' }), el('th', { text: 'Equipo' }), el('th', { text: 'Operador' }), el('th', { text: 'Duración' }),
+      el('th', { class: 'num', text: 'Desviadas' }), el('th', { class: 'num', text: 'Con falla' }),
+      el('th', { class: 'num', text: 'Ciclo prom.' }), el('th', { text: 'Estado' }))),
+    el('tbody', {}, lista.length ? lista.map(s => {
+      const ini = new Date(s.inicio);
+      const fin = s.fin ? new Date(s.fin) : new Date(s.ultima_actividad || s.inicio);
+      const e = estadoSesion(s);
+      return el('tr', {},
+        el('td', { text: fDiaHora(ini) }), el('td', { text: s.equipo || '—' }), el('td', { text: s.operador || '—' }),
+        el('td', { text: duracion(fin - ini) }),
+        el('td', { class: 'num', text: nf.format(s.desviadas ?? 0) }),
+        el('td', { class: 'num', text: nf.format(s.fallas ?? 0) }),
+        el('td', { class: 'num', text: s.ciclo_prom_ms != null ? nf1.format(s.ciclo_prom_ms / 1000) + ' s' : '—' }),
+        el('td', {}, el('span', { class: 'estado-ico' }, e.clase === 'vivo' ? icono('bueno') : e.clase === 'alerta' ? icono('alerta') : null, e.texto)));
+    }) : el('tr', {}, el('td', { colspan: 8, class: 'tenue', text: 'Sin sesiones en este periodo.' }))));
+}
+
+// ======================================================================
+//  Datos de ejemplo (para ver el tablero sin Supabase)
+// ======================================================================
+function aleatorio(semilla) {
+  return () => {
+    semilla |= 0; semilla = semilla + 0x6D2B79F5 | 0;
+    let t = Math.imul(semilla ^ semilla >>> 15, 1 | semilla);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function generarDemo(desde) {
+  const ahora = Date.now();
+  const sesiones = [], piezas = [], eventos = [];
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const iso = t => new Date(t).toISOString();
+
+  for (let dia = 29; dia >= 0; dia--) {
+    const base = new Date(hoy); base.setDate(hoy.getDate() - dia);
+    const rnd = aleatorio(base.getFullYear() * 400 + base.getMonth() * 32 + base.getDate());
+    if (dia > 0 && (base.getDay() === 0 || base.getDay() === 6 || rnd() < 0.2)) continue;
+    const plan = dia === 0
+      ? [{ equipo: 'Mesa 20', ini: base.getTime() + 8.2 * 3600e3, horas: 1.6 },
+         { equipo: 'Mesa 21', ini: Math.floor(ahora / 3600e3) * 3600e3 - 3600e3, horas: null }]
+      : [{ equipo: rnd() < 0.5 ? 'Mesa 20' : 'Mesa 21', ini: base.getTime() + (8 + rnd() * 5) * 3600e3, horas: 0.6 + rnd() * 1.6 }];
+
+    plan.forEach((p, k) => {
+      if (p.ini > ahora) return;
+      const id = `demo-${dia}-${k}`;
+      const fin = p.horas == null ? null : Math.min(ahora, p.ini + p.horas * 3600e3);
+      const hasta = fin ?? ahora;
+      const s = {
+        id, equipo: p.equipo, operador: ['Ana', 'Luis', 'Sofía', 'Diego'][Math.floor(rnd() * 4)], puerto: 'COM3', firmware: 'BandaV2',
+        inicio: iso(p.ini), fin: fin == null ? null : iso(fin), ultima_actividad: iso(hasta),
+        piezas: 0, desviadas: 0, fallas: 0, detecciones_ir: 0, lecturas: 0, lecturas_sin_eco: 0, ciclo_prom_ms: null,
+      };
+      let t = p.ini + 4000, nUs = 0, nIr = 0, sumCiclo = 0, nCiclo = 0;
+      while (t < hasta) {
+        nIr++;
+        piezas.push({ id: `${id}-i${nIr}`, sesion_id: id, numero: nIr, fecha: iso(t), sensor: 'INFRARROJO', resultado: 'DETECTADA' });
+        if (rnd() < 0.55) {
+          nUs++;
+          const dist = 1.2 + rnd() * 1.6;
+          const retraso = rnd() < 0.035, incompleta = !retraso && rnd() < 0.006;
+          const resp = retraso ? 6000 + Math.round(rnd() * 9000) : 25 + Math.round(rnd() * 60);
+          const exp = 3985 + Math.round(rnd() * 45);
+          const ciclo = incompleta ? null : resp + exp + 1000 + Math.round(rnd() * 8);
+          const resultado = retraso ? 'RETRASO_PLC' : incompleta ? 'INCOMPLETA' : 'DESVIADA';
+          piezas.push({
+            id: `${id}-u${nUs}`, sesion_id: id, numero: nUs, fecha: iso(t + 300), sensor: 'ULTRASONICO',
+            distancia_cm: +dist.toFixed(1), altura_cm: +(9.5 - dist).toFixed(1), resultado,
+            resp_plc_ms: incompleta ? null : resp, expulsion_ms: incompleta ? null : exp, ciclo_ms: ciclo,
+          });
+          s.piezas++;
+          if (!incompleta) s.desviadas++;
+          if (resultado !== 'DESVIADA') s.fallas++;
+          else { sumCiclo += ciclo; nCiclo++; }
+          if (retraso) eventos.push({ id: `${id}-e${nUs}`, sesion_id: id, fecha: iso(t + 5300), nivel: 'ERROR', codigo: 'PLC_SIN_RESPUESTA', detalle: 'El PLC no activa O:0/5 (lleva 5 s). Revisen que esté en RUN y que el relé llegue a I:0/0.' });
+          if (incompleta) eventos.push({ id: `${id}-r${nUs}`, sesion_id: id, fecha: iso(t + 900), nivel: 'AVISO', codigo: 'ARDUINO_REINICIO', detalle: 'El Arduino se reinició solo. Causa típica: caída de voltaje al moverse el servo o arrancar el motor.' });
+          t += (resp + exp + 1000);
+        }
+        t += (5 + rnd() * 9) * 1000;
+      }
+      if (rnd() < 0.3) eventos.push({ id: `${id}-s`, sesion_id: id, fecha: iso(p.ini + (hasta - p.ini) * rnd()), nivel: 'AVISO', codigo: 'SENSOR_SIN_ECO', detalle: '50 lecturas seguidas en 0: revisen el ultrasónico (cables Trig/Echo, orientación o nada a su alcance).' });
+      s.detecciones_ir = nIr;
+      s.lecturas = Math.round((hasta - p.ini) / 115);
+      s.lecturas_sin_eco = Math.round(s.lecturas * (0.004 + rnd() * 0.01));
+      s.ciclo_prom_ms = nCiclo ? sumCiclo / nCiclo : null;
+      sesiones.push(s);
+    });
+  }
+  const enRango = x => new Date(x.fecha) >= desde && new Date(x.fecha) <= ahora;
+  const desc = (a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0);
+  return {
+    piezas: piezas.filter(enRango).sort(desc),
+    eventos: eventos.filter(enRango).sort(desc),
+    sesiones: sesiones.sort((a, b) => (a.inicio < b.inicio ? 1 : -1)),
+  };
+}
+
+// ======================================================================
+//  Vistas y eventos
+// ======================================================================
+function mostrarConfig() {
+  $('#vistaConfig').hidden = false;
+  $('#vistaTablero').hidden = true;
+  const real = st.cfg && !st.cfg.demo ? st.cfg : null;
+  $('#cfgUrl').value = real?.url || '';
+  $('#cfgKey').value = real?.key || '';
+  $('#btnVolver').hidden = !st.cfg;
+  $('#btnOlvidar').hidden = !real;
+  $('#cfgMsg').textContent = '';
+}
+
+function mostrarTablero() {
+  $('#vistaConfig').hidden = true;
+  $('#vistaTablero').hidden = false;
+  $('#demoAviso').hidden = !st.cfg?.demo;
+  cargar();
+}
+
+$('#formConfig').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const url = normalizarUrl($('#cfgUrl').value);
+  $('#cfgUrl').value = url;
+  const key = $('#cfgKey').value.trim();
+  const msg = $('#cfgMsg');
+  let u;
+  try { u = new URL(url); } catch { u = null; }
+  const local = u && u.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(u.hostname);
+  if (!u || (u.protocol !== 'https:' && !local)) { msg.className = 'msg error'; msg.textContent = 'La URL debe empezar con https://'; return; }
+  msg.className = 'msg'; msg.textContent = 'Probando…';
+  const anterior = st.cfg;
+  st.cfg = { url, key };
+  try {
+    await api('sesiones?select=id&limit=1');
+    guardarCfg(st.cfg);
+    st.datos = null;
+    mostrarTablero();
+  } catch (e) {
+    st.cfg = anterior;
+    msg.className = 'msg error';
+    msg.textContent = e.message;
+  }
+});
+
+$('#btnDemo').addEventListener('click', () => { st.cfg = { demo: true }; guardarCfg(st.cfg); st.datos = null; mostrarTablero(); });
+$('#btnVolver').addEventListener('click', mostrarTablero);
+$('#btnOlvidar').addEventListener('click', () => { st.cfg = null; st.datos = null; guardarCfg(null); mostrarConfig(); });
+$('#btnAjustes').addEventListener('click', mostrarConfig);
+$('#btnRefrescar').addEventListener('click', () => { if (st.cfg) { $('#vistaTablero').hidden ? mostrarTablero() : cargar(); } });
+
+document.querySelectorAll('[data-rango]').forEach(b => b.addEventListener('click', () => {
+  st.rango = b.dataset.rango;
+  document.querySelectorAll('[data-rango]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  st.limitePiezas = 25; st.limiteAlarmas = 12;
+  cargar();
+}));
+$('#selEquipo').addEventListener('change', e => { st.equipo = e.target.value; pintar(); });
+$('#btnMasPiezas').addEventListener('click', () => { st.limitePiezas += 50; pintarPiezas(filtrado()); });
+$('#chkIr').addEventListener('change', () => { st.limitePiezas = 25; pintarPiezas(filtrado()); });
+$('#btnMasAlarmas').addEventListener('click', () => { st.limiteAlarmas += 30; pintarAlarmas(filtrado()); });
+$('#btnTablaGrafica').addEventListener('click', e => {
+  const abierta = $('#tablaGrafica').hidden;
+  $('#tablaGrafica').hidden = !abierta;
+  $('#grafica').hidden = abierta;
+  e.target.textContent = abierta ? 'Ver gráfica' : 'Ver tabla';
+  e.target.setAttribute('aria-expanded', abierta);
+  if (!abierta) requestAnimationFrame(dibujarGrafica);
+});
+
+// Inicio
+st.cfg = leerCfg();
+st.cfg ? mostrarTablero() : mostrarConfig();
+</script>
+</body>
+</html>
