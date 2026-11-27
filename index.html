@@ -438,7 +438,7 @@ const RESULTADOS = {
   DESVIADA: { texto: 'Desviada', serie: 's2' },
   RETRASO_PLC: { texto: 'Desviada · retraso PLC', tipo: 'alerta' },
   INCOMPLETA: { texto: 'Ciclo incompleto', tipo: 'critico' },
-  DETECTADA: { texto: 'Entrada (barrera IR)' },
+  DETECTADA: { texto: 'Entrada (barrera de conteo)' },
 };
 const esFalla = p => p.resultado === 'RETRASO_PLC' || p.resultado === 'INCOMPLETA';
 const esDesviada = p => p.resultado === 'DESVIADA' || p.resultado === 'RETRASO_PLC';
@@ -450,9 +450,9 @@ function avatar(nombre) {
   return el('span', { class: 'avatar', style: `background:${OPERADORES[nombre] || '#6a7686'}`, 'aria-hidden': 'true', text: iniciales });
 }
 
-/** Piezas altas: las corta la barrera alta (IR_ALTA) o, con el firmware anterior, las detectaba el ultrasónico. */
+/** Piezas que se desvían: las corta la barrera inicial (IR_ALTA) o, con el firmware anterior, las detectaba el ultrasónico. */
 const esAlta = p => p.sensor === 'IR_ALTA' || p.sensor === 'ULTRASONICO';
-const NOMBRE_SENSOR = { IR_ALTA: 'Barrera alta', INFRARROJO: 'Barrera final', ULTRASONICO: 'Ultrasónico' };
+const NOMBRE_SENSOR = { IR_ALTA: 'Barrera inicial', INFRARROJO: 'Barrera final', ULTRASONICO: 'Ultrasónico' };
 
 /**
  * Aceptadas: con la barrera al final de la banda, cada cruce es una pieza ACEPTADA.
@@ -637,9 +637,9 @@ function pintarKpis(f) {
   valor('#kTotal', nf.format(total));
   pintarSegmentos(aceptadas, desviadas);
   valor('#kAcept', nf.format(aceptadas));
-  $('#kAceptSub').textContent = total ? `${pct(aceptadas)} · piezas bajas que siguen` : 'piezas bajas que siguen';
+  $('#kAceptSub').textContent = total ? `${pct(aceptadas)} · llegan al final de la banda` : 'llegan al final de la banda';
   valor('#kDesv', nf.format(desviadas));
-  $('#kDesvSub').textContent = total ? `${pct(desviadas)} · piezas altas que desvía la pluma` : 'piezas altas que desvía la pluma';
+  $('#kDesvSub').textContent = total ? `${pct(desviadas)} · cortan la barrera inicial y las desvía la pluma` : 'cortan la barrera inicial y las desvía la pluma';
   valor('#kFallas', nf.format(fallas));
   $('#kFallasSub').textContent = fallas ? 'retraso del PLC o ciclo cortado' : 'sin incidentes';
   valor('#kHora', nf.format(ultimaHora));
@@ -1043,19 +1043,19 @@ function generarDemo(desde) {
       const hasta = fin ?? ahora;
       const operador = Object.keys(OPERADORES)[(dia + k) % 4];
       const s = {
-        id, equipo: p.equipo, operador, puerto: 'COM3', firmware: 'BandaSimple IR',
+        id, equipo: p.equipo, operador, puerto: 'COM3', firmware: 'BandaSimple IR + Laser',
         inicio: iso(p.ini), fin: fin == null ? null : iso(fin), ultima_actividad: iso(hasta),
         piezas: 0, aceptadas: 0, desviadas: 0, fallas: 0, detecciones_ir: 0, lecturas: 0, lecturas_sin_eco: 0, ciclo_prom_ms: null,
       };
       let t = p.ini + 4000, nUs = 0, nIr = 0, sumCiclo = 0, nCiclo = 0, sumResp = 0;
       while (t < hasta) {
         if (rnd() < 0.55) {
-          // Pieza baja: pasa por debajo de la barrera alta y cruza la barrera final
+          // Pieza que sigue: llega al final y corta el láser de la barrera final
           nIr++;
           piezas.push({ id: `${id}-i${nIr}`, sesion_id: id, numero: nIr, fecha: iso(t + 2400), sensor: 'INFRARROJO', resultado: 'ACEPTADA' });
           s.aceptadas++;
         } else {
-          // Pieza alta: corta la barrera alta y la pluma la desvía
+          // Pieza que se desvía: corta la barrera inicial, el PLC detiene la banda y la pluma la desvía
           nUs++;
           const retraso = rnd() < 0.035, incompleta = !retraso && rnd() < 0.006;
           const resp = retraso ? 6000 + Math.round(rnd() * 7000) : 30 + Math.round(rnd() * 45);
@@ -1076,7 +1076,7 @@ function generarDemo(desde) {
         }
         t += (3 + rnd() * 7) * 1000;
       }
-      if (rnd() < 0.2) eventos.push({ id: `${id}-s`, sesion_id: id, fecha: iso(p.ini + (hasta - p.ini) * rnd()), nivel: 'AVISO', codigo: 'BARRERA_ALTA_BLOQUEADA', detalle: 'El haz de la barrera alta (pines 12/13) lleva más de 10 s cortado sin que haya pieza en ciclo: algo lo tapa o el emisor y el receptor están desalineados.' });
+      if (rnd() < 0.2) eventos.push({ id: `${id}-s`, sesion_id: id, fecha: iso(p.ini + (hasta - p.ini) * rnd()), nivel: 'AVISO', codigo: 'BARRERA_ALTA_BLOQUEADA', detalle: 'La barrera inicial (KY-005 en el pin 6, KY-022 en el pin 3) lleva más de 10 s cortada sin que haya pieza en ciclo: algo la tapa o el emisor y el receptor están desalineados.' });
       s.detecciones_ir = nIr;
       s.lecturas = Math.round((hasta - p.ini) / 250);
       s.ciclo_prom_ms = nCiclo ? sumCiclo / nCiclo : null;
